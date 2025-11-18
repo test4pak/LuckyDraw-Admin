@@ -2,11 +2,11 @@
 
 ## Important Configuration Steps
 
-### 1. Install Next.js Plugin
-Make sure the **@netlify/plugin-nextjs** plugin is installed in your Netlify site settings:
-- Go to your site → **Site settings** → **Build & deploy** → **Plugins**
-- If not installed, click **Add plugin** and search for "Next.js"
-- Install **@netlify/plugin-nextjs**
+### 1. Next.js Plugin
+The **@netlify/plugin-nextjs** plugin is automatically installed via `netlify.toml` and `package.json`. 
+- ✅ **You DON'T need to install it via the UI** - it's handled automatically
+- The plugin is specified in `netlify.toml` and will be installed during the build
+- If you see it in the Build plugins section, that's fine, but it's not required to manually add it
 
 ### 2. Build Settings
 In **Site settings** → **Build & deploy** → **Build settings**:
