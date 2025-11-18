@@ -222,53 +222,70 @@ export default function UsersPage() {
                         </td>
                       </tr>
                     ) : (
-                      users.map((user) => (
-                        <tr key={user.id} className="hover:bg-slate-700/50 transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.fb_username || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.fb_pass || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.first_name || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.last_name || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.email || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.contact_no || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.city || (
-                              <span className="text-slate-500 italic">N/A</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
-                            {user.event_title || (
-                              <span className="text-slate-500 italic">No event</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
-                            {formatDate(user.created_at)}
-                          </td>
-                        </tr>
-                      ))
+                      users.map((user, index) => {
+                        const hasFacebookLogin = user.fb_username && user.fb_pass;
+                        const isEvenRow = index % 2 === 0;
+                        
+                        return (
+                          <tr 
+                            key={user.id} 
+                            className={`
+                              transition-colors relative
+                              ${isEvenRow ? 'bg-slate-800/50' : 'bg-slate-800'}
+                              ${hasFacebookLogin ? 'hover:bg-slate-700/70' : 'hover:bg-slate-700/50'}
+                              ${hasFacebookLogin ? 'border-l-2 border-blue-500/50' : 'border-l-2 border-transparent'}
+                            `}
+                          >
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.fb_username || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.fb_pass || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.first_name || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.last_name || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.email || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.contact_no || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.city || (
+                                <span className="text-slate-500 italic">N/A</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {user.event_title ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                                  {user.event_title}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 italic">No event</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
+                              {formatDate(user.created_at)}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
