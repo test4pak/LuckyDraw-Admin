@@ -84,8 +84,8 @@ export default function UsersPage() {
         // This is a safety net in case animation timeout doesn't fire
         const fiveSecondsAgo = new Date(Date.now() - 5000);
         const updated = new Set<string>();
-        prev.forEach((id) => {
-          const user = users.find((u) => u.id === id);
+        prev.forEach((id: string) => {
+          const user = users.find((u: UserEntry) => u.id === id);
           if (user) {
             const createdAt = new Date(user.created_at);
             if (createdAt > fiveSecondsAgo) {
@@ -263,7 +263,7 @@ export default function UsersPage() {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         console.log("Realtime subscription status:", status);
         if (status === "SUBSCRIBED") {
           console.log("✅ Successfully subscribed to realtime updates");
