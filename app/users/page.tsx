@@ -226,7 +226,7 @@ export default function UsersPage() {
           schema: "public",
           table: "facebook_logins",
         },
-        (payload) => {
+        (payload: any) => {
           console.log("Realtime update received:", payload);
           
           // Mark new entries for visual indication
