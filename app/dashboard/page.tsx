@@ -225,7 +225,7 @@ export default function DashboardPage() {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         console.log("Dashboard realtime subscription status:", status);
         if (status === "SUBSCRIBED") {
           console.log("✅ Successfully subscribed to participant updates");
@@ -291,7 +291,7 @@ export default function DashboardPage() {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         console.log("Facebook logins subscription status:", status);
         if (status === "SUBSCRIBED") {
           console.log("✅ Successfully subscribed to facebook_logins INSERT events");
