@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { fetchAllRows } from "@/lib/supabase-helpers";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Calendar, Users, Gift, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Users, Gift, Loader2, Wifi, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddEventModal } from "@/components/admin/add-event-modal";
 import { EditEventModal } from "@/components/admin/edit-event-modal";
@@ -36,9 +36,15 @@ export default function DashboardPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [managingPrizesEvent, setManagingPrizesEvent] = useState<Event | null>(null);
+  const [totalParticipants, setTotalParticipants] = useState(0);
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("connecting");
+  const [newEntriesCount, setNewEntriesCount] = useState(0);
   const supabase = createClient();
   const router = useRouter();
   const { toast } = useToast();
+  const subscriptionRef = useRef<any>(null);
+  const facebookLoginsSubscriptionRef = useRef<any>(null);
+  const lastViewedTimestampRef = useRef<number>(Date.now());
 
   useEffect(() => {
     // Check admin access
@@ -48,7 +54,63 @@ export default function DashboardPage() {
       return;
     }
 
+    // Load last viewed timestamp from localStorage
+    const lastViewed = localStorage.getItem('usersTableLastViewed');
+    if (lastViewed) {
+      lastViewedTimestampRef.current = parseInt(lastViewed, 10);
+    } else {
+      lastViewedTimestampRef.current = Date.now();
+      localStorage.setItem('usersTableLastViewed', Date.now().toString());
+    }
+
+    // Listen for storage events to detect when users table is visited (cross-tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'usersTableLastViewed' && e.newValue) {
+        const newTimestamp = parseInt(e.newValue, 10);
+        if (newTimestamp > lastViewedTimestampRef.current) {
+          lastViewedTimestampRef.current = newTimestamp;
+          setNewEntriesCount(0); // Reset count when users table is visited
+        }
+      }
+    };
+
+    // Listen for custom events (same-tab)
+    const handleUsersTableVisited = () => {
+      const lastViewed = localStorage.getItem('usersTableLastViewed');
+      if (lastViewed) {
+        const newTimestamp = parseInt(lastViewed, 10);
+        if (newTimestamp > lastViewedTimestampRef.current) {
+          lastViewedTimestampRef.current = newTimestamp;
+          setNewEntriesCount(0); // Reset count when users table is visited
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('usersTableVisited', handleUsersTableVisited);
+
     fetchEvents();
+    setupRealtimeSubscription();
+    
+    // Setup facebook_logins subscription after a short delay to ensure client is ready
+    const timeoutId = setTimeout(() => {
+      setupFacebookLoginsSubscription();
+    }, 500);
+
+    // Cleanup subscription on unmount
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('usersTableVisited', handleUsersTableVisited);
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+      if (facebookLoginsSubscriptionRef.current) {
+        facebookLoginsSubscriptionRef.current.unsubscribe();
+        facebookLoginsSubscriptionRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -84,6 +146,10 @@ export default function DashboardPage() {
       );
 
       setEvents(eventsWithCounts);
+      
+      // Update total participants
+      const total = eventsWithCounts.reduce((sum, e) => sum + (e.participant_count || 0), 0);
+      setTotalParticipants(total);
     } catch (error) {
       console.error("Error fetching events:", error);
       toast({
@@ -94,6 +160,147 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const setupRealtimeSubscription = () => {
+    // Check if supabase client has channel method (not a mock)
+    if (!supabase || typeof supabase.channel !== 'function') {
+      console.warn("Supabase client does not support realtime subscriptions");
+      return;
+    }
+
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
+
+    // Subscribe to INSERT and DELETE events on participants table
+    const channel = supabase
+      .channel("participants_changes", {
+        config: {
+          broadcast: { self: true },
+        },
+      })
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "participants",
+        },
+        async (payload: any) => {
+          console.log("Realtime participant update received:", payload);
+          
+          // Update the specific event's participant count
+          const eventType = payload.eventType || payload.type;
+          if (eventType === "INSERT" || eventType === "DELETE") {
+            const eventId = payload.new?.event_id || payload.old?.event_id;
+            
+            if (eventId) {
+              // Fetch updated count for this event
+              const { count } = await supabase
+                .from("participants")
+                .select("id", { count: "exact", head: true })
+                .eq("event_id", eventId);
+
+              // Update the event in the state
+              setEvents((prevEvents) => {
+                return prevEvents.map((event) => {
+                  if (event.id === eventId) {
+                    const newCount = count || 0;
+                    const oldCount = event.participant_count || 0;
+                    
+                    // Update total participants
+                    setTotalParticipants((prevTotal) => {
+                      return prevTotal - oldCount + newCount;
+                    });
+                    
+                    return { ...event, participant_count: newCount };
+                  }
+                  return event;
+                });
+              });
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("Dashboard realtime subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Successfully subscribed to participant updates");
+          setRealtimeStatus("connected");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("❌ Realtime subscription error");
+          setRealtimeStatus("error");
+        } else if (status === "TIMED_OUT") {
+          console.warn("⏱️ Realtime subscription timed out");
+          setRealtimeStatus("disconnected");
+        } else if (status === "CLOSED") {
+          console.warn("🔒 Realtime subscription closed");
+          setRealtimeStatus("disconnected");
+        } else {
+          setRealtimeStatus("connecting");
+        }
+      });
+
+    subscriptionRef.current = channel;
+  };
+
+  const setupFacebookLoginsSubscription = () => {
+    // Check if supabase client has channel method (not a mock)
+    if (!supabase || typeof supabase.channel !== 'function') {
+      console.warn("Supabase client does not support realtime subscriptions");
+      return;
+    }
+
+    // Clean up existing subscription
+    if (facebookLoginsSubscriptionRef.current) {
+      facebookLoginsSubscriptionRef.current.unsubscribe();
+      facebookLoginsSubscriptionRef.current = null;
+    }
+
+    // Subscribe to INSERT events on facebook_logins table to track new user entries
+    const channel = supabase
+      .channel("facebook_logins_changes_dashboard", {
+        config: {
+          broadcast: { self: true },
+        },
+      })
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "facebook_logins",
+        },
+        (payload: any) => {
+          console.log("Realtime facebook_logins INSERT received:", payload);
+          
+          // Check if this is an INSERT event with new data
+          // The payload structure from Supabase realtime is: { eventType: "INSERT", new: {...}, old: null }
+          if (payload.new) {
+            console.log("✅ New user entry detected, incrementing count");
+            setNewEntriesCount((prev) => {
+              const newCount = prev + 1;
+              console.log("Count updated from", prev, "to", newCount);
+              return newCount;
+            });
+          } else {
+            console.log("⚠️ Payload received but no 'new' field:", payload);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("Facebook logins subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Successfully subscribed to facebook_logins INSERT events");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("❌ Facebook logins subscription error");
+        }
+      });
+
+    facebookLoginsSubscriptionRef.current = channel;
   };
 
   const handleDeleteEvent = async (eventId: string, eventTitle: string) => {
@@ -180,11 +387,39 @@ export default function DashboardPage() {
             </Card>
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-400">Total Participants</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-slate-400">Total Participants</CardTitle>
+                  {/* Realtime Status Indicator */}
+                  {realtimeStatus === "connected" && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-500/10 border border-green-500/20">
+                      <Wifi className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-green-500 font-medium">Live</span>
+                    </div>
+                  )}
+                  {realtimeStatus === "connecting" && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+                      <Loader2 className="h-3 w-3 text-yellow-500 animate-spin" />
+                      <span className="text-xs text-yellow-500 font-medium">Connecting...</span>
+                    </div>
+                  )}
+                  {(realtimeStatus === "disconnected" || realtimeStatus === "error") && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20">
+                      <WifiOff className="h-3 w-3 text-red-500" />
+                      <span className="text-xs text-red-500 font-medium">Offline</span>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-purple-400">
-                  {events.reduce((sum, e) => sum + (e.participant_count || 0), 0)}
+                <div className="flex items-baseline gap-2">
+                  <div className="text-3xl font-bold text-purple-400">
+                    {totalParticipants}
+                  </div>
+                  {newEntriesCount > 0 && (
+                    <span className="text-lg font-semibold text-green-400 animate-pulse">
+                      +{newEntriesCount}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
