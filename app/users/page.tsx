@@ -176,7 +176,7 @@ export default function UsersPage() {
         setNewEntryIds((prev) => new Set([...prev, ...newIds]));
         
         // Remove the "new" indicator after animation completes
-        newIds.forEach((id) => {
+        newIds.forEach((id: string) => {
           setTimeout(() => {
             setNewEntryIds((prev) => {
               const updated = new Set(prev);
