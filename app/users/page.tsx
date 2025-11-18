@@ -169,8 +169,8 @@ export default function UsersPage() {
       // This ensures only very recent entries flash on page load
       const threeSecondsAgo = new Date(Date.now() - 3000);
       const newIds = transformedUsers
-        .filter((user) => new Date(user.created_at) > threeSecondsAgo)
-        .map((user) => user.id);
+        .filter((user: UserEntry) => new Date(user.created_at) > threeSecondsAgo)
+        .map((user: UserEntry) => user.id);
       
       if (newIds.length > 0) {
         setNewEntryIds((prev) => new Set([...prev, ...newIds]));
