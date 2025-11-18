@@ -38,9 +38,12 @@ try {
   console.log(`\n💾 Committing: "${commitMessage}"`);
   execSync(`git commit -m "${commitMessage}"`, { stdio: 'inherit' });
 
+  // Get current branch name
+  const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+  
   // Push
-  console.log('\n⬆️  Pushing to GitHub...');
-  execSync('git push origin main', { stdio: 'inherit' });
+  console.log(`\n⬆️  Pushing to GitHub (branch: ${currentBranch})...`);
+  execSync(`git push origin ${currentBranch}`, { stdio: 'inherit' });
 
   console.log('\n✅ Successfully deployed to GitHub!');
 } catch (error) {
