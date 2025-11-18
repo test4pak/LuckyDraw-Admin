@@ -52,6 +52,7 @@ export function EditEventModal({ isOpen, event, onClose, onSuccess }: EditEventM
         URL.revokeObjectURL(imagePreview);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

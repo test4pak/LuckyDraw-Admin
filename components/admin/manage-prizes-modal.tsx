@@ -54,6 +54,7 @@ export function ManagePrizesModal({ isOpen, event, onClose, onSuccess }: ManageP
     if (isOpen) {
       fetchPrizes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, event.id]);
 
   const fetchPrizes = async () => {
@@ -369,7 +370,7 @@ export function ManagePrizesModal({ isOpen, event, onClose, onSuccess }: ManageP
                       </div>
                     ) : prizes.length === 0 ? (
                       <div className="text-center py-8 text-slate-400">
-                        <p>No prizes yet. Click "Add Prize" to get started.</p>
+                        <p>No prizes yet. Click &quot;Add Prize&quot; to get started.</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

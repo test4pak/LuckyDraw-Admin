@@ -43,6 +43,7 @@ export function AddEventModal({ isOpen, onClose, onSuccess }: AddEventModalProps
         URL.revokeObjectURL(imagePreview);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
