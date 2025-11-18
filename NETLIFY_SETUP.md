@@ -11,8 +11,9 @@ Make sure the **@netlify/plugin-nextjs** plugin is installed in your Netlify sit
 ### 2. Build Settings
 In **Site settings** → **Build & deploy** → **Build settings**:
 - **Build command**: `npm run build` (or leave empty, netlify.toml handles it)
-- **Publish directory**: Leave empty (Next.js plugin handles this automatically)
-- **Node version**: `18` (or higher)
+- **Publish directory**: ⚠️ **MUST BE EMPTY** - The Next.js plugin handles this automatically. If you have a value here, DELETE IT or the build will fail!
+- **Base directory**: Leave empty (unless your admin panel is in a subdirectory)
+- **Node version**: `20` (or higher)
 
 ### 3. Environment Variables
 Add these in **Site settings** → **Environment variables**:
